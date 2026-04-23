@@ -63,8 +63,16 @@ export default function ChatFAB() {
 
   const [input, setInput] = useState("");
   const [showToast, setShowToast] = useState(false);
+  const [dataLabel, setDataLabel] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    fetch("/api/data-status")
+      .then((r) => r.json())
+      .then((d: { label?: string }) => { if (d.label) setDataLabel(d.label); })
+      .catch(() => null);
+  }, []);
 
   const remaining = maxFreeUsage - usageCount;
   const exhausted = remaining <= 0;
@@ -212,7 +220,7 @@ export default function ChatFAB() {
                   실거래마스터 AI
                 </div>
                 <div className="text-xs" style={{ color: "var(--text-muted)" }}>
-                  경기도 산업용 부동산 전문
+                  {dataLabel ? `DB 기준: ${dataLabel}` : "경기도 산업용 부동산 전문"}
                 </div>
               </div>
             </div>

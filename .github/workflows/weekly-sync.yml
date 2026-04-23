@@ -1,9 +1,9 @@
-name: Weekly Gyeonggi API Sync
+name: Daily Gyeonggi API Sync
 
 on:
   schedule:
-    # 매주 월요일 03:00 KST = 일요일 18:00 UTC
-    - cron: "0 18 * * 0"
+    # 매일 03:00 KST = 전날 18:00 UTC
+    - cron: "0 18 * * *"
   workflow_dispatch:
     inputs:
       source:
@@ -16,6 +16,14 @@ on:
           - factory_register
           - factory_tx
           - land_tx
+      rolling:
+        description: "롤링 모드 (최근 60일만 재수집)"
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
 
 jobs:
   sync:
@@ -27,9 +35,10 @@ jobs:
       - name: Trigger sync endpoint
         run: |
           SOURCE="${{ github.event.inputs.source }}"
-          BODY="{}"
+          ROLLING="${{ github.event.inputs.rolling }}"
+          BODY="{\"rolling\": ${ROLLING:-false}}"
           if [ -n "$SOURCE" ]; then
-            BODY="{\"source\": \"$SOURCE\"}"
+            BODY="{\"source\": \"$SOURCE\", \"rolling\": ${ROLLING:-false}}"
           fi
 
           echo "Syncing: $BODY"

@@ -145,31 +145,41 @@ async function upsertBatch<T extends object & { id: string }>(table: string, row
 
 // ─── 단일 소스 동기화 ────────────────────────────────────────────────────────
 
-async function syncSource(source: "factory_register" | "factory_tx" | "land_tx"): Promise<{
-  total_fetched: number;
-  total_upserted: number;
-  error?: string;
-}> {
+// 60일 롤링 윈도우: CONTRACT_DAY 기준 최근 60일 필터
+function getRollingCutoff(): string {
+  const d = new Date();
+  d.setDate(d.getDate() - 60);
+  return d.toISOString().slice(0, 10).replace(/-/g, ""); // YYYYMMDD
+}
+
+async function syncSource(
+  source: "factory_register" | "factory_tx" | "land_tx",
+  rolling = false,
+): Promise<{ total_fetched: number; total_upserted: number; error?: string }> {
   const startedAt = new Date().toISOString();
   let total_fetched = 0;
   let total_upserted = 0;
   let errorMsg: string | undefined;
+  const cutoff = rolling ? getRollingCutoff() : null;
 
   try {
     if (source === "factory_register") {
+      // 공장등록현황은 rolling 불필요 — 항상 전체
       const rows = await fetchAllPages("FACTRYREGISTTM");
       total_fetched = rows.length;
       const records = rows.map(toFactoryRegister);
       total_upserted = await upsertBatch("factory_register", records);
 
     } else if (source === "factory_tx") {
-      const rows = await fetchAllPages("TBGRISKABINDUTRADEM");
+      let rows = await fetchAllPages("TBGRISKABINDUTRADEM");
+      if (cutoff) rows = rows.filter((r) => (r.CONTRACT_DAY ?? "") >= cutoff);
       total_fetched = rows.length;
       const records = rows.map(toFactoryTransaction);
       total_upserted = await upsertBatch("factory_transactions", records);
 
     } else {
-      const rows = await fetchAllPages("TBGRISKABLANDTRADEM");
+      let rows = await fetchAllPages("TBGRISKABLANDTRADEM");
+      if (cutoff) rows = rows.filter((r) => (r.CONTRACT_DAY ?? "") >= cutoff);
       total_fetched = rows.length;
       const records = rows.map(toLandTransaction);
       total_upserted = await upsertBatch("land_transactions", records);
@@ -193,6 +203,19 @@ async function syncSource(source: "factory_register" | "factory_tx" | "land_tx")
 
 // ─── POST Handler ────────────────────────────────────────────────────────────
 
+// ─── 최신 수집 기준일 조회 ──────────────────────────────────────────────────
+
+async function getLatestSyncDate(): Promise<string | null> {
+  // factory_transactions에서 가장 최근 contract_day 반환
+  const { data } = await supabaseAdmin
+    .from("factory_transactions")
+    .select("contract_day")
+    .neq("rlse_yn", "C")
+    .order("contract_day", { ascending: false })
+    .limit(1);
+  return data?.[0]?.contract_day ?? null;
+}
+
 export async function POST(req: NextRequest) {
   // 인증
   const auth = req.headers.get("authorization") ?? "";
@@ -200,9 +223,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  // source 선택 (기본: 전체)
-  const body = await req.json().catch(() => ({})) as { source?: string };
+  // source 및 모드 선택
+  const body = await req.json().catch(() => ({})) as { source?: string; rolling?: boolean };
   const source = body.source as "factory_register" | "factory_tx" | "land_tx" | undefined;
+  const rolling = body.rolling ?? false; // true: 최근 60일 재수집 모드
 
   const sources: Array<"factory_register" | "factory_tx" | "land_tx"> = source
     ? [source]
@@ -211,10 +235,12 @@ export async function POST(req: NextRequest) {
   const results: Record<string, unknown> = {};
 
   for (const s of sources) {
-    results[s] = await syncSource(s);
+    results[s] = await syncSource(s, rolling);
   }
 
-  return NextResponse.json({ ok: true, results, synced_at: new Date().toISOString() });
+  const latestDate = await getLatestSyncDate();
+
+  return NextResponse.json({ ok: true, results, synced_at: new Date().toISOString(), latest_contract_day: latestDate });
 }
 
 // 동기화 상태 확인
