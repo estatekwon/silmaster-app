@@ -45,7 +45,7 @@ as $$
     buldng_wk_purpos_nm, build_yy, mdt_div,
     1 - (embedding <=> query_embedding) as similarity
   from factory_transactions
-  where rlse_yn = 'N'
+  where rlse_yn != 'C'
     and embedding is not null
   order by embedding <=> query_embedding
   limit match_count;
@@ -74,7 +74,7 @@ as $$
     purpos_region_nm, landcgr_nm,
     1 - (embedding <=> query_embedding) as similarity
   from land_transactions
-  where rlse_yn = 'N'
+  where rlse_yn != 'C'
     and embedding is not null
   order by embedding <=> query_embedding
   limit match_count;

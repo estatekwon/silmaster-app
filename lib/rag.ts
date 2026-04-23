@@ -173,7 +173,7 @@ async function sqlSearchFactoryTx(kw: QueryKeywords): Promise<FactoryTxRow[]> {
   let q = supabaseAdmin
     .from("factory_transactions")
     .select("signgu_nm,emd_li_nm,contract_day,prvtuse_ar,sitergt_ar,delng_amt,buldng_wk_purpos_nm,build_yy,mdt_div")
-    .eq("rlse_yn", "N")
+    .neq("rlse_yn", "C")
     .order("contract_day", { ascending: false })
     .limit(20);
 
@@ -193,7 +193,7 @@ async function sqlSearchLandTx(kw: QueryKeywords): Promise<LandTxRow[]> {
   let q = supabaseAdmin
     .from("land_transactions")
     .select("signgu_nm,emd_li_nm,contract_day,land_delng_ar,delng_amt,purpos_region_nm,landcgr_nm")
-    .eq("rlse_yn", "N")
+    .neq("rlse_yn", "C")
     .order("contract_day", { ascending: false })
     .limit(15);
 
