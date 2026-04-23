@@ -243,12 +243,12 @@ export default function MarkerDataPanel() {
             {[1,2,3,4,5].map((i) => (
               <div key={i} style={{ marginBottom: 8, borderRadius: 10, border: "1px solid var(--surface-border)", padding: 14, background: "var(--surface-1)" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-                  <div style={{ width: 60, height: 14, borderRadius: 4, background: "var(--surface-3)", animation: "pulse-gold 1.5s ease-in-out infinite" }} />
-                  <div style={{ width: 80, height: 12, borderRadius: 4, background: "var(--surface-3)", animation: "pulse-gold 1.5s ease-in-out infinite" }} />
+                  <div className="skeleton" style={{ width: 60, height: 14 }} />
+                  <div className="skeleton" style={{ width: 80, height: 12 }} />
                 </div>
-                <div style={{ width: "75%", height: 16, borderRadius: 4, background: "var(--surface-3)", marginBottom: 6, animation: "pulse-gold 1.5s ease-in-out infinite" }} />
-                <div style={{ width: "55%", height: 12, borderRadius: 4, background: "var(--surface-3)", marginBottom: 10, animation: "pulse-gold 1.5s ease-in-out infinite" }} />
-                <div style={{ width: 90, height: 18, borderRadius: 4, background: "var(--surface-3)", animation: "pulse-gold 1.5s ease-in-out infinite" }} />
+                <div className="skeleton" style={{ width: "75%", height: 16, marginBottom: 6 }} />
+                <div className="skeleton" style={{ width: "55%", height: 12, marginBottom: 10 }} />
+                <div className="skeleton" style={{ width: 90, height: 18 }} />
               </div>
             ))}
             <div style={{ textAlign: "center", fontSize: 11, color: "var(--text-muted)", marginTop: 8 }}>경기도 API 연결 중...</div>

@@ -14,6 +14,8 @@ import MarkerDataPanel from "@/components/listings/MarkerDataPanel";
 import CustomerMgmt from "@/components/customers/CustomerMgmt";
 import ScheduleMgmt from "@/components/schedule/ScheduleMgmt";
 import { useMapStore } from "@/stores/mapStore";
+import { useSession, signOut } from "next-auth/react";
+import LoginModal from "@/components/auth/LoginModal";
 import type { Listing } from "@/components/listings/ListingPanel";
 
 type Page = "map" | "listings" | "customers" | "schedule";
@@ -62,7 +64,9 @@ export default function HomePage() {
   const [page, setPage] = useState<Page>("map");
   const [selectedListingId, setSelectedListingId] = useState<number | null>(null);
   const [detailListing, setDetailListing] = useState<Listing | null>(null);
+  const [showLogin, setShowLogin] = useState(false);
   const { markers, loading } = useMapStore();
+  const { data: session } = useSession();
 
   const meta = PAGE_META[page];
 
@@ -90,6 +94,32 @@ export default function HomePage() {
           </button>
         ))}
         <div className="sidebar-spacer" />
+        {session?.user ? (
+          <button
+            className="sidebar-btn"
+            title={`${session.user.name} · 로그아웃`}
+            onClick={() => signOut()}
+            style={{ padding: 4 }}
+          >
+            {session.user.image ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={session.user.image} alt="" style={{ width: 28, height: 28, borderRadius: "50%", objectFit: "cover", border: "1.5px solid var(--accent-primary)" }} />
+            ) : (
+              <div style={{ width: 28, height: 28, borderRadius: "50%", background: "var(--accent-muted)", border: "1.5px solid var(--accent-primary)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "var(--accent-primary)" }}>
+                {session.user.name?.[0] ?? "U"}
+              </div>
+            )}
+          </button>
+        ) : (
+          <button
+            className="sidebar-btn"
+            title="로그인"
+            onClick={() => setShowLogin(true)}
+            style={{ color: "var(--text-muted)" }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+          </button>
+        )}
         <button className="sidebar-btn" title="설정" style={{ color: "var(--text-muted)" }}>
           <GearIcon />
         </button>
@@ -215,6 +245,9 @@ export default function HomePage() {
 
       {/* 매물 상세 모달 */}
       {detailListing && <ListingDetail listing={detailListing} onClose={() => setDetailListing(null)} />}
+
+      {/* 로그인 모달 */}
+      {showLogin && <LoginModal onClose={() => setShowLogin(false)} />}
     </div>
   );
 }

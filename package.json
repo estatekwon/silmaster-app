@@ -8,9 +8,12 @@
     "start": "next start"
   },
   "dependencies": {
+    "@auth/supabase-adapter": "^1.11.2",
+    "@supabase/supabase-js": "^2.104.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.378.0",
     "next": "14.2.3",
+    "next-auth": "^4.24.14",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "zustand": "^4.5.2"
