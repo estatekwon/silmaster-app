@@ -154,13 +154,13 @@ export default function MapInner() {
         const overlays: kakao.maps.CustomOverlay[] = [];
 
         markers.forEach((m: MarkerData) => {
-          const position = new kakao.maps.LatLng(m.lat, m.lng);
+          const position = new window.kakao.maps.LatLng(m.lat, m.lng);
 
           // dot overlay (marker)
           const dotEl = document.createElement("div");
           dotEl.innerHTML = createDotOverlayContent(color);
 
-          const overlay = new kakao.maps.CustomOverlay({
+          const overlay = new window.kakao.maps.CustomOverlay({
             position,
             content: dotEl,
             map: mapRef.current!,
@@ -170,12 +170,12 @@ export default function MapInner() {
           // popup infowindow
           dotEl.addEventListener("click", () => {
             infoWindowRef.current?.close();
-            const iw = new kakao.maps.InfoWindow({
+            const iw = new window.kakao.maps.InfoWindow({
               content: `<div style="background:#111318;border:1px solid #2A2D35;border-radius:12px;overflow:hidden">${buildPopupHtml(m)}</div>`,
               removable: true,
             });
             // CustomOverlay 위에 InfoWindow를 붙이기 위해 임시 마커 사용
-            const tmpMarker = new kakao.maps.Marker({ position, map: mapRef.current! });
+            const tmpMarker = new window.kakao.maps.Marker({ position, map: mapRef.current! });
             iw.open(mapRef.current!, tmpMarker);
             tmpMarker.setMap(null);
             infoWindowRef.current = iw;
@@ -199,35 +199,32 @@ export default function MapInner() {
     if (!containerRef.current || mapRef.current) return;
     if (!KAKAO_KEY) return;
 
-    const script = document.createElement("script");
-    script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_KEY}&libraries=services,clusterer&autoload=false`;
-    script.async = true;
-    script.onload = () => {
-      kakao.maps.load(() => {
-        if (!containerRef.current) return;
-
-        const center = new kakao.maps.LatLng(37.4138, 127.5183);
-        const map = new kakao.maps.Map(containerRef.current, {
-          center,
-          level: 9,
-        });
-
-        kakao.maps.event.addListener(map, "zoom_changed", () => {
-          setZoom(map.getLevel());
-        });
-
-        mapRef.current = map;
-
-        // 초기 활성 레이어 로드
-        (Object.keys(layers) as LayerType[]).forEach((l) => {
-          if (layers[l]) loadLayer(l);
-        });
+    const initMap = () => {
+      if (!containerRef.current) return;
+      const center = new window.kakao.maps.LatLng(37.4138, 127.5183);
+      const map = new window.kakao.maps.Map(containerRef.current, {
+        center,
+        level: 9,
+      });
+      window.kakao.maps.event.addListener(map, "zoom_changed", () => {
+        setZoom(map.getLevel());
+      });
+      mapRef.current = map;
+      (Object.keys(layers) as LayerType[]).forEach((l) => {
+        if (layers[l]) loadLayer(l);
       });
     };
+
+    const script = document.createElement("script");
+    // autoload=false 제거 → SDK가 스스로 초기화 후 onload 시점에 window.kakao 준비 완료
+    script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_KEY}&libraries=services,clusterer`;
+    script.async = true;
+    script.onload = initMap;
+    script.onerror = () => console.error("[실거래마스터] 카카오맵 SDK 로드 실패");
     document.head.appendChild(script);
 
     return () => {
-      document.head.removeChild(script);
+      if (document.head.contains(script)) document.head.removeChild(script);
       mapRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

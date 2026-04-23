@@ -14,7 +14,7 @@ const MapInner = dynamic(() => import("./MapInner"), {
 
 export default function MapContainer() {
   return (
-    <div style={{ position: "absolute", inset: 0 }}>
+    <div style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}>
       <MapInner />
     </div>
   );
