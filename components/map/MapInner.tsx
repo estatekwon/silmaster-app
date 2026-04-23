@@ -248,20 +248,17 @@ export default function MapInner() {
 
   if (!KAKAO_KEY) {
     return (
-      <div className="w-full h-full flex items-center justify-center flex-col gap-4" style={{ background: "#0D0F14" }}>
-        <div className="text-4xl">🗺️</div>
-        <p className="text-sm font-semibold" style={{ color: "#C9A96E" }}>카카오맵 API 키가 필요합니다</p>
-        <p className="text-xs text-center" style={{ color: "#8A8F9E", maxWidth: 280 }}>
-          <code style={{ background: "#1E2128", padding: "2px 6px", borderRadius: 4, color: "#A78BFA" }}>
-            .env.local
-          </code> 파일에{" "}
-          <code style={{ background: "#1E2128", padding: "2px 6px", borderRadius: 4, color: "#60A5FA" }}>
-            NEXT_PUBLIC_KAKAO_MAP_KEY
-          </code>를 설정해 주세요.
-        </p>
+      <div style={{ position: "absolute", inset: 0, background: "#0D0F14", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16 }}>
+        <p style={{ fontSize: 14, fontWeight: 600, color: "#C9A96E" }}>카카오맵 API 키가 필요합니다</p>
+        <p style={{ fontSize: 12, color: "#8A8F9E" }}>.env.local에 NEXT_PUBLIC_KAKAO_MAP_KEY를 설정해 주세요.</p>
       </div>
     );
   }
 
-  return <div ref={containerRef} className="w-full h-full" />;
+  return (
+    <div
+      ref={containerRef}
+      style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, width: "100%", height: "100%" }}
+    />
+  );
 }

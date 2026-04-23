@@ -5,15 +5,17 @@ import dynamic from "next/dynamic";
 const MapInner = dynamic(() => import("./MapInner"), {
   ssr: false,
   loading: () => (
-    <div className="w-full h-full flex items-center justify-center" style={{ background: "#0D0F14" }}>
-      <div className="text-center">
-        <div className="w-8 h-8 border-2 border-accent-gold border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-        <p className="text-text-secondary text-sm">지도 로딩 중...</p>
-      </div>
+    <div style={{ position: "absolute", inset: 0, background: "#0D0F14", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12 }}>
+      <div style={{ width: 32, height: 32, border: "2px solid #C9A96E", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+      <p style={{ fontSize: 13, color: "#8A8F9E" }}>지도 로딩 중...</p>
     </div>
   ),
 });
 
 export default function MapContainer() {
-  return <MapInner />;
+  return (
+    <div style={{ position: "absolute", inset: 0 }}>
+      <MapInner />
+    </div>
+  );
 }
