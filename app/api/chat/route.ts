@@ -191,7 +191,14 @@ export async function POST(req: NextRequest) {
   }
 
   // RAG: Supabase에서 관련 실거래 데이터 조회
-  const { context: ragContext } = await buildRagContext(message);
+  let ragContext = "";
+  try {
+    const rag = await buildRagContext(message);
+    ragContext = rag.context;
+  } catch (e) {
+    console.error("[chat] RAG error:", e);
+    // RAG 실패해도 Gemini 기본 응답으로 계속 진행
+  }
 
   // Gemini 대화 히스토리
   const history = messages.slice(-8).map((m) => ({
@@ -211,6 +218,8 @@ export async function POST(req: NextRequest) {
   );
 
   if (!geminiRes.ok) {
+    const errBody = await geminiRes.text().catch(() => "");
+    console.error("[chat] Gemini API error:", geminiRes.status, errBody);
     return NextResponse.json({ error: "upstream_error" }, { status: 502 });
   }
 
