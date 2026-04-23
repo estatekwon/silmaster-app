@@ -163,12 +163,31 @@ function buildPopupHtml(marker: MarkerData): string {
   return "";
 }
 
-function createDotOverlayContent(color: string, selected = false): string {
-  const size = selected ? 18 : 11;
-  const glow = selected
-    ? `box-shadow:0 0 0 4px ${color}44,0 0 14px ${color}99;`
-    : `box-shadow:0 1px 4px rgba(0,0,0,0.5);`;
-  return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};border:${selected ? "2px" : "1.5px"} solid rgba(255,255,255,0.85);${glow}cursor:pointer;transition:all 0.15s ease;"></div>`;
+function fmtPrice(rawAmt: string | number): string {
+  const amt = parseInt(String(rawAmt).replace(/[^0-9]/g, ""), 10);
+  if (!amt) return "";
+  if (amt >= 100000) return `${Math.floor(amt / 10000)}억`;
+  if (amt >= 10000) {
+    const eok = Math.floor(amt / 10000);
+    const man = Math.round((amt % 10000) / 1000);
+    return man > 0 ? `${eok}억${man}천` : `${eok}억`;
+  }
+  return `${Math.round(amt / 1000)}천만`;
+}
+
+function createMarkerContent(marker: MarkerData, color: string): string {
+  let priceText = "";
+  if (marker.layer === "factory_tx") priceText = fmtPrice(marker.delng_amt);
+  else if (marker.layer === "land_tx") priceText = fmtPrice(marker.delng_amt);
+
+  if (priceText) {
+    return `<div style="display:flex;flex-direction:column;align-items:center;cursor:pointer;gap:0;">
+      <div style="background:${color};color:#0D0F14;font-size:10px;font-weight:800;padding:2px 7px;border-radius:5px;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.5);font-family:'IBM Plex Mono',monospace;letter-spacing:-0.02em;">${priceText}</div>
+      <div style="width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid ${color};margin-top:-1px;"></div>
+    </div>`;
+  }
+  // 등록공장: 컬러 링 도트
+  return `<div style="cursor:pointer;width:10px;height:10px;border-radius:50%;background:${color};border:2px solid rgba(255,255,255,0.9);box-shadow:0 0 0 2px ${color}66,0 2px 8px rgba(0,0,0,0.5);"></div>`;
 }
 
 // ── SDK 로더 ─────────────────────────────────────────────
@@ -311,7 +330,7 @@ export default function MapInner() {
         markers.forEach((m: MarkerData) => {
           const position = new window.kakao.maps.LatLng(m.lat, m.lng);
           const dotEl = document.createElement("div");
-          dotEl.innerHTML = createDotOverlayContent(color);
+          dotEl.innerHTML = createMarkerContent(m, color);
 
           const overlay = new window.kakao.maps.CustomOverlay({
             position,
@@ -377,7 +396,7 @@ export default function MapInner() {
   useEffect(() => {
     if (!mapRef.current) return;
     const typeMap: Record<string, number> = {
-      ROADMAP: 1, SKYVIEW: 2, HYBRID: 3, TERRAIN: 5,
+      ROADMAP: 1, HYBRID: 3, TERRAIN: 5,
     };
     const id = typeMap[mapType] ?? 1;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -387,9 +406,12 @@ export default function MapInner() {
   // ── 지적도 오버레이 ───────────────────────────────────
   useEffect(() => {
     if (!mapRef.current) return;
-    // USE_DISTRICT = 11
+    // kakao.maps.MapTypeId.USE_DISTRICT 상수 사용 (하드코딩 방지)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const typeId = 11 as any;
+    const kakaoMaps = (window as any).kakao?.maps;
+    if (!kakaoMaps) return;
+    const typeId = kakaoMaps.MapTypeId?.USE_DISTRICT;
+    if (typeId == null) return;
     if (useDistrict) {
       mapRef.current.addOverlayMapTypeId(typeId);
     } else {

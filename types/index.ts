@@ -53,7 +53,7 @@ export interface MapBounds {
   neLng: number;
 }
 
-export type MapType = "ROADMAP" | "SKYVIEW" | "TERRAIN" | "HYBRID";
+export type MapType = "ROADMAP" | "HYBRID" | "TERRAIN";
 export type MeasureMode = "none" | "distance" | "area";
 
 export interface FilterState {

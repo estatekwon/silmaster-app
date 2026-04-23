@@ -5,9 +5,8 @@ import type { MapType } from "@/types";
 
 const BASE_TYPES: { key: MapType; label: string }[] = [
   { key: "ROADMAP", label: "일반" },
-  { key: "SKYVIEW", label: "위성" },
+  { key: "HYBRID",  label: "위성" },
   { key: "TERRAIN", label: "지형" },
-  { key: "HYBRID", label: "위성+레이블" },
 ];
 
 export default function MapTypeBar() {
