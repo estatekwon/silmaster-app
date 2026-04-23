@@ -129,6 +129,61 @@ function createDotOverlayContent(color: string, selected = false): string {
   "></div>`;
 }
 
+/** HEAD에 이미 주입된 카카오 SDK 스크립트가 있는지 확인 */
+function isKakaoScriptInjected(): boolean {
+  return !!document.querySelector('script[src*="dapi.kakao.com/v2/maps/sdk.js"]');
+}
+
+/** 카카오 SDK를 동적으로 로드하고 완전히 초기화된 뒤 callback 실행
+ *
+ * 핵심 원칙 (카카오 공식 가이드):
+ *   1. autoload=false 로 스크립트 로드 → SDK 파싱만 완료, 지도 API 초기화 X
+ *   2. window.kakao.maps.load(callback) 호출 → SDK 내부 비동기 초기화 완료 후 callback 실행
+ *
+ * script.onload 시점에는 window.kakao 객체 자체만 존재하고
+ * kakao.maps.* API는 아직 준비되지 않을 수 있음 → 반드시 load() 콜백 안에서 초기화해야 함
+ */
+function loadKakaoSDK(appKey: string, callback: () => void): () => void {
+  let cancelled = false;
+
+  const run = () => {
+    if (cancelled) return;
+    window.kakao.maps.load(() => {
+      if (!cancelled) callback();
+    });
+  };
+
+  if (isKakaoScriptInjected()) {
+    // 스크립트는 이미 있음 → SDK 로드 여부 확인 후 바로 실행
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (typeof (window as any).kakao?.maps?.load === "function") {
+      run();
+    } else {
+      // 아직 스크립트 파싱 중인 극히 드문 케이스: onload 대기
+      const existing = document.querySelector<HTMLScriptElement>(
+        'script[src*="dapi.kakao.com/v2/maps/sdk.js"]'
+      );
+      if (existing) {
+        const onload = () => { if (!cancelled) run(); };
+        existing.addEventListener("load", onload, { once: true });
+      }
+    }
+    return () => { cancelled = true; };
+  }
+
+  // 최초 주입: autoload=false 필수 → SDK가 스스로 지도 API를 자동 초기화하지 않음
+  const script = document.createElement("script");
+  script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${appKey}&libraries=services,clusterer&autoload=false`;
+  script.async = true;
+  script.onload = run;
+  script.onerror = () => {
+    console.error("[실거래마스터] 카카오맵 SDK 로드 실패 — appkey 또는 네트워크를 확인하세요");
+  };
+  document.head.appendChild(script);
+
+  return () => { cancelled = true; };
+}
+
 export default function MapInner() {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<kakao.maps.Map | null>(null);
@@ -196,35 +251,36 @@ export default function MapInner() {
 
   // Init Kakao Map
   useEffect(() => {
-    if (!containerRef.current || mapRef.current) return;
     if (!KAKAO_KEY) return;
+    // containerRef가 마운트될 때까지 대기
+    if (!containerRef.current) return;
+    // 이미 지도가 초기화된 경우 중복 실행 방지
+    if (mapRef.current) return;
 
-    const initMap = () => {
-      if (!containerRef.current) return;
+    const cancel = loadKakaoSDK(KAKAO_KEY, () => {
+      // kakao.maps.load() 콜백 — 이 시점에서만 kakao.maps.* API 사용 가능
+      if (!containerRef.current || mapRef.current) return;
+
       const center = new window.kakao.maps.LatLng(37.4138, 127.5183);
       const map = new window.kakao.maps.Map(containerRef.current, {
         center,
         level: 9,
       });
+
       window.kakao.maps.event.addListener(map, "zoom_changed", () => {
         setZoom(map.getLevel());
       });
+
       mapRef.current = map;
+
       (Object.keys(layers) as LayerType[]).forEach((l) => {
         if (layers[l]) loadLayer(l);
       });
-    };
-
-    const script = document.createElement("script");
-    // autoload=false 제거 → SDK가 스스로 초기화 후 onload 시점에 window.kakao 준비 완료
-    script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_KEY}&libraries=services,clusterer`;
-    script.async = true;
-    script.onload = initMap;
-    script.onerror = () => console.error("[실거래마스터] 카카오맵 SDK 로드 실패");
-    document.head.appendChild(script);
+    });
 
     return () => {
-      if (document.head.contains(script)) document.head.removeChild(script);
+      cancel();
+      // mapRef만 초기화 — SDK 스크립트는 HEAD에 유지 (재사용)
       mapRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
