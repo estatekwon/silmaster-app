@@ -1,0 +1,60 @@
+name: Weekly Gyeonggi API Sync
+
+on:
+  schedule:
+    # 매주 월요일 03:00 KST = 일요일 18:00 UTC
+    - cron: "0 18 * * 0"
+  workflow_dispatch:
+    inputs:
+      source:
+        description: "동기화 소스 (비워두면 전체)"
+        required: false
+        default: ""
+        type: choice
+        options:
+          - ""
+          - factory_register
+          - factory_tx
+          - land_tx
+
+jobs:
+  sync:
+    name: Sync Gyeonggi Open API → Supabase
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Trigger sync endpoint
+        run: |
+          SOURCE="${{ github.event.inputs.source }}"
+          BODY="{}"
+          if [ -n "$SOURCE" ]; then
+            BODY="{\"source\": \"$SOURCE\"}"
+          fi
+
+          echo "Syncing: $BODY"
+
+          RESPONSE=$(curl -s -w "\n%{http_code}" \
+            -X POST "${{ secrets.FACTORYMAP_URL }}/api/sync" \
+            -H "Authorization: Bearer ${{ secrets.SYNC_SECRET }}" \
+            -H "Content-Type: application/json" \
+            -d "$BODY" \
+            --max-time 1500)
+
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          BODY_OUT=$(echo "$RESPONSE" | head -n-1)
+
+          echo "HTTP Status: $HTTP_CODE"
+          echo "Response: $BODY_OUT"
+
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "❌ Sync failed with status $HTTP_CODE"
+            exit 1
+          fi
+
+          echo "✅ Sync completed"
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "::error::경기도 API 동기화 실패. Supabase sync_logs 테이블 확인 필요."
