@@ -281,6 +281,7 @@ export interface RagContext {
   context: string;
   hasData: boolean;
   searchMode: "vector" | "sql";
+  rowCount: number;
 }
 
 export async function buildRagContext(query: string): Promise<RagContext> {
@@ -323,11 +324,14 @@ export async function buildRagContext(query: string): Promise<RagContext> {
     formatRegister(registerRows, kw.sigungu),
   ].filter(Boolean);
 
-  if (!parts.length) return { context: "", hasData: false, searchMode };
+  const rowCount = factoryRows.length + landRows.length + registerRows.length;
+
+  if (!parts.length) return { context: "", hasData: false, searchMode, rowCount: 0 };
 
   return {
     context: parts.join("\n\n---\n\n"),
     hasData: true,
     searchMode,
+    rowCount,
   };
 }

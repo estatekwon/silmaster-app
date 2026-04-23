@@ -56,8 +56,9 @@ function UsageToast({ remaining, onClose }: { remaining: number; onClose: () => 
 
 export default function ChatFAB() {
   const {
-    messages, isOpen, isStreaming, usageCount, maxFreeUsage,
+    messages, isOpen, isStreaming, usageCount, maxFreeUsage, ragCount,
     openChat, closeChat, addMessage, appendToLastAssistant, setStreaming, incrementUsage,
+    setRemaining, setRagCount,
   } = useChatStore();
 
   const [input, setInput] = useState("");
@@ -97,6 +98,13 @@ export default function ChatFAB() {
     addMessage({ role: "user", content: userMsg, timestamp: Date.now() });
     addMessage({ role: "assistant", content: "", timestamp: Date.now() });
     setStreaming(true);
+    setRagCount(0);
+
+    const ERROR_MESSAGES: Record<string, string> = {
+      upstream_error: "AI 서비스에 일시적인 문제가 있습니다. 잠시 후 다시 시도해 주세요.",
+      invalid_input: "질문을 다시 입력해 주세요.",
+      rate_limit: "오늘 무료 이용(5회)을 모두 사용했습니다.",
+    };
 
     try {
       const res = await fetch("/api/chat", {
@@ -105,15 +113,10 @@ export default function ChatFAB() {
         body: JSON.stringify({ message: userMsg, messages: messages.slice(-6) }),
       });
 
-      // Rate limit
-      if (res.status === 429) {
-        const data = await res.json() as { message?: string };
-        appendToLastAssistant(data.message ?? "오늘 무료 이용(5회)을 모두 사용했습니다.");
-        return;
-      }
-
       if (!res.ok || !res.body) {
-        appendToLastAssistant("죄송합니다, 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.");
+        const data = await res.json().catch(() => ({})) as { error?: string; message?: string };
+        const errorKey = data.error ?? "";
+        appendToLastAssistant(data.message ?? ERROR_MESSAGES[errorKey] ?? "일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.");
         return;
       }
 
@@ -133,8 +136,10 @@ export default function ChatFAB() {
           const data = line.slice(6).trim();
           if (data === "[DONE]") break;
           try {
-            const { content } = JSON.parse(data) as { content?: string };
-            if (content) appendToLastAssistant(content);
+            const parsed = JSON.parse(data) as { content?: string; remaining?: number; rag_count?: number };
+            if (parsed.remaining != null) setRemaining(parsed.remaining);
+            if (parsed.rag_count != null) setRagCount(parsed.rag_count);
+            if (parsed.content) appendToLastAssistant(parsed.content);
           } catch {
             // 무시
           }
@@ -308,6 +313,23 @@ export default function ChatFAB() {
                 </div>
               </div>
             ))}
+
+            {/* RAG 뱃지 */}
+            {!isStreaming && ragCount > 0 && (
+              <div className="flex justify-start">
+                <span
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs"
+                  style={{
+                    background: "rgba(201,169,110,0.12)",
+                    border: "1px solid rgba(201,169,110,0.3)",
+                    color: "var(--accent-primary)",
+                  }}
+                >
+                  <span style={{ fontSize: "0.7rem" }}>🔍</span>
+                  실거래 {ragCount}건 참고
+                </span>
+              </div>
+            )}
 
             {/* 소진 카드 */}
             {exhausted && (

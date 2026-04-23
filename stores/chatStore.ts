@@ -12,6 +12,7 @@ interface ChatStore {
   isStreaming: boolean;
   usageCount: number;
   maxFreeUsage: number;
+  ragCount: number;
 
   openChat: () => void;
   closeChat: () => void;
@@ -19,6 +20,8 @@ interface ChatStore {
   appendToLastAssistant: (chunk: string) => void;
   setStreaming: (v: boolean) => void;
   incrementUsage: () => void;
+  setRemaining: (remaining: number) => void;
+  setRagCount: (count: number) => void;
 }
 
 export const useChatStore = create<ChatStore>((set) => ({
@@ -27,6 +30,7 @@ export const useChatStore = create<ChatStore>((set) => ({
   isStreaming: false,
   usageCount: 0,
   maxFreeUsage: 5,
+  ragCount: 0,
 
   openChat: () => set({ isOpen: true }),
   closeChat: () => set({ isOpen: false }),
@@ -47,4 +51,9 @@ export const useChatStore = create<ChatStore>((set) => ({
   setStreaming: (v) => set({ isStreaming: v }),
 
   incrementUsage: () => set((s) => ({ usageCount: s.usageCount + 1 })),
+
+  setRemaining: (remaining) =>
+    set((s) => ({ usageCount: s.maxFreeUsage - remaining })),
+
+  setRagCount: (count) => set({ ragCount: count }),
 }));

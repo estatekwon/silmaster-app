@@ -156,7 +156,7 @@ export async function POST(req: NextRequest) {
   const { message, messages = [] } = body;
 
   if (!message || typeof message !== "string" || message.length > 1000) {
-    return NextResponse.json({ error: "invalid_input" }, { status: 400 });
+    return NextResponse.json({ error: "invalid_input", message: "질문을 다시 입력해 주세요." }, { status: 400 });
   }
 
   // 도메인 필터
@@ -192,9 +192,11 @@ export async function POST(req: NextRequest) {
 
   // RAG: Supabase에서 관련 실거래 데이터 조회
   let ragContext = "";
+  let ragCount = 0;
   try {
     const rag = await buildRagContext(message);
     ragContext = rag.context;
+    ragCount = rag.rowCount ?? 0;
   } catch (e) {
     console.error("[chat] RAG error:", e);
     // RAG 실패해도 Gemini 기본 응답으로 계속 진행
@@ -220,7 +222,7 @@ export async function POST(req: NextRequest) {
   if (!geminiRes.ok) {
     const errBody = await geminiRes.text().catch(() => "");
     console.error("[chat] Gemini API error:", geminiRes.status, errBody);
-    return NextResponse.json({ error: "upstream_error" }, { status: 502 });
+    return NextResponse.json({ error: "upstream_error", message: "AI 서비스에 일시적인 문제가 있습니다. 잠시 후 다시 시도해 주세요." }, { status: 502 });
   }
 
   const encoder = new TextEncoder();
@@ -253,7 +255,7 @@ export async function POST(req: NextRequest) {
             const text = parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
             if (text) {
               controller.enqueue(
-                encoder.encode(`data: ${JSON.stringify({ content: text, ...(isFirst ? { remaining } : {}) })}\n\n`)
+                encoder.encode(`data: ${JSON.stringify({ content: text, ...(isFirst ? { remaining, rag_count: ragCount } : {}) })}\n\n`)
               );
               isFirst = false;
             }
