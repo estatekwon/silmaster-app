@@ -14,8 +14,10 @@ import MarkerDataPanel from "@/components/listings/MarkerDataPanel";
 import CustomerMgmt from "@/components/customers/CustomerMgmt";
 import ScheduleMgmt from "@/components/schedule/ScheduleMgmt";
 import { useMapStore } from "@/stores/mapStore";
-import { useSession, signOut } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import LoginModal from "@/components/auth/LoginModal";
+import UserMenu from "@/components/auth/UserMenu";
+import MyPageModal from "@/components/auth/MyPageModal";
 import type { Listing } from "@/components/listings/ListingPanel";
 
 type Page = "map" | "listings" | "customers" | "schedule";
@@ -65,6 +67,7 @@ export default function HomePage() {
   const [selectedListingId, setSelectedListingId] = useState<number | null>(null);
   const [detailListing, setDetailListing] = useState<Listing | null>(null);
   const [showLogin, setShowLogin] = useState(false);
+  const [showMyPage, setShowMyPage] = useState(false);
   const { markers, loading } = useMapStore();
   const { data: session } = useSession();
 
@@ -95,21 +98,12 @@ export default function HomePage() {
         ))}
         <div className="sidebar-spacer" />
         {session?.user ? (
-          <button
-            className="sidebar-btn"
-            title={`${session.user.name} · 로그아웃`}
-            onClick={() => signOut()}
-            style={{ padding: 4 }}
-          >
-            {session.user.image ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={session.user.image} alt="" style={{ width: 28, height: 28, borderRadius: "50%", objectFit: "cover", border: "1.5px solid var(--accent-primary)" }} />
-            ) : (
-              <div style={{ width: 28, height: 28, borderRadius: "50%", background: "var(--accent-muted)", border: "1.5px solid var(--accent-primary)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "var(--accent-primary)" }}>
-                {session.user.name?.[0] ?? "U"}
-              </div>
-            )}
-          </button>
+          <UserMenu
+            name={session.user.name ?? "사용자"}
+            email={session.user.email ?? ""}
+            image={session.user.image}
+            onMyPage={() => setShowMyPage(true)}
+          />
         ) : (
           <button
             className="sidebar-btn"
@@ -246,8 +240,18 @@ export default function HomePage() {
       {/* 매물 상세 모달 */}
       {detailListing && <ListingDetail listing={detailListing} onClose={() => setDetailListing(null)} />}
 
-      {/* 로그인 모달 */}
-      {showLogin && <LoginModal onClose={() => setShowLogin(false)} />}
+      {/* 로그인 모달 — 미로그인 상태에서만 */}
+      {showLogin && !session && <LoginModal onClose={() => setShowLogin(false)} />}
+
+      {/* 마이페이지 모달 */}
+      {showMyPage && session?.user && (
+        <MyPageModal
+          name={session.user.name ?? "사용자"}
+          email={session.user.email ?? ""}
+          image={session.user.image}
+          onClose={() => setShowMyPage(false)}
+        />
+      )}
     </div>
   );
 }
