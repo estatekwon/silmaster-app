@@ -4,10 +4,12 @@ import { useState } from "react";
 import MapContainer from "@/components/map/MapContainer";
 import MapTypeBar from "@/components/map/MapTypeBar";
 import MeasureToolbar from "@/components/map/MeasureToolbar";
+import LayerToggle from "@/components/map/LayerToggle";
 import FilterPanel from "@/components/sidebar/FilterPanel";
 import ChatFAB from "@/components/chat/ChatFAB";
 import ListingPanel, { LISTINGS } from "@/components/listings/ListingPanel";
 import ListingDetail from "@/components/listings/ListingDetail";
+import MarkerDataPanel from "@/components/listings/MarkerDataPanel";
 import CustomerMgmt from "@/components/customers/CustomerMgmt";
 import ScheduleMgmt from "@/components/schedule/ScheduleMgmt";
 import { useMapStore } from "@/stores/mapStore";
@@ -125,15 +127,23 @@ export default function HomePage() {
         {/* ── 콘텐츠 ── */}
         {(page === "map" || page === "listings") && (
           <div className="content-split">
-            {/* 좌측 매물 패널 */}
-            <ListingPanel onSelect={handleListingSelect} selected={selectedListingId} />
+            {/* 좌측 패널: 지도=실거래 데이터, 매물관리=매물 목록 */}
+            {page === "map"
+              ? <MarkerDataPanel />
+              : <ListingPanel onSelect={handleListingSelect} selected={selectedListingId} />
+            }
 
             {/* 지도 */}
             <div className="map-area">
               <MapContainer />
 
               {/* 지도 위 컨트롤 */}
-              {/* 측정 툴바 우측 */}
+              {/* 우측 상단: 레이어 토글 */}
+              <div style={{ position: "absolute", right: 12, top: 12, zIndex: 10 }}>
+                <LayerToggle />
+              </div>
+
+              {/* 우측 중간: 측정 툴바 */}
               <div style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", zIndex: 10 }}>
                 <MeasureToolbar />
               </div>
