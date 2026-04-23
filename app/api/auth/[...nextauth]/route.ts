@@ -1,3 +1,5 @@
+export const runtime = "nodejs";
+
 import NextAuth, { type NextAuthOptions } from "next-auth";
 import KakaoProvider from "next-auth/providers/kakao";
 import GoogleProvider from "next-auth/providers/google";
