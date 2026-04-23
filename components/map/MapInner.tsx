@@ -232,7 +232,6 @@ export default function MapInner() {
   const mapRef = useRef<kakao.maps.Map | null>(null);
   const overlaysRef = useRef<Map<string, kakao.maps.CustomOverlay[]>>(new Map());
   const infoWindowRef = useRef<kakao.maps.InfoWindow | null>(null);
-  const loadedLayersRef = useRef<Set<LayerType>>(new Set());
 
   // 측정 관련 refs
   const measurePointsRef = useRef<kakao.maps.LatLng[]>([]);
@@ -246,6 +245,7 @@ export default function MapInner() {
   const { layers, filters, mapType, useDistrict, measureMode, searchTarget, selectMarker, setZoom, setMarkers, setLoading } = useMapStore();
 
   // ── 측정 초기화 ──────────────────────────────────────
+
   const clearMeasure = useCallback(() => {
     measurePolyRef.current?.setMap(null);
     measurePolyRef.current = null;
@@ -314,13 +314,27 @@ export default function MapInner() {
   // ── 레이어 로드 ──────────────────────────────────────
   const loadLayer = useCallback(
     async (layer: LayerType) => {
-      if (loadedLayersRef.current.has(layer) || !mapRef.current) return;
-      loadedLayersRef.current.add(layer);
+      if (!mapRef.current) return;
       setLoading(true);
+
+      // 기존 오버레이 제거 후 재로드
+      overlaysRef.current.get(layer)?.forEach((o) => o.setMap(null));
+      overlaysRef.current.delete(layer);
 
       try {
         const params = new URLSearchParams({ layer });
-        if (filters.sigungu) params.set("sigungu", filters.sigungu);
+        if (filters.sigungu)      params.set("sigungu", filters.sigungu);
+        if (filters.industryType) params.set("industryType", filters.industryType);
+        if (filters.areaMin)      params.set("areaMin", filters.areaMin);
+        if (filters.areaMax)      params.set("areaMax", filters.areaMax);
+        if (filters.priceMin)     params.set("priceMin", filters.priceMin);
+        if (filters.priceMax)     params.set("priceMax", filters.priceMax);
+        if (filters.yearFrom)     params.set("yearFrom", filters.yearFrom);
+        if (filters.yearTo)       params.set("yearTo", filters.yearTo);
+        // dateFrom/dateTo는 YYYY-MM-DD로 저장 → YYYYMMDD 변환
+        if (filters.dateFrom)     params.set("dateFrom", filters.dateFrom.replace(/-/g, ""));
+        if (filters.dateTo)       params.set("dateTo", filters.dateTo.replace(/-/g, ""));
+
         const res = await fetch(`/api/markers?${params}`);
         const { markers } = await res.json();
 
@@ -361,7 +375,7 @@ export default function MapInner() {
         setLoading(false);
       }
     },
-    [filters.sigungu, selectMarker, setMarkers, setLoading]
+    [filters, selectMarker, setMarkers, setLoading]
   );
 
   // ── 초기화 ───────────────────────────────────────────

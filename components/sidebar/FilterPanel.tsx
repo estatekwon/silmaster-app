@@ -232,23 +232,21 @@ export default function FilterPanel() {
           {/* 계약일 */}
           <div>
             <label style={{ fontSize: 11, color: "var(--text-secondary)", display: "block", marginBottom: 5, fontWeight: 600 }}>
-              계약일 <span style={{ color: "var(--text-muted)", fontSize: 9, fontWeight: 400 }}>(YYYYMMDD)</span>
+              계약일
             </label>
             <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
               <input
-                type="text"
-                placeholder="20230101"
+                type="date"
                 value={filters.dateFrom}
                 onChange={(e) => setFilter("dateFrom", e.target.value)}
-                style={{ ...inputStyle, width: "50%", fontFamily: "monospace" }}
+                style={{ ...inputStyle, width: "50%" }}
               />
               <span style={{ color: "var(--text-muted)", fontSize: 11, flexShrink: 0 }}>~</span>
               <input
-                type="text"
-                placeholder="20261231"
+                type="date"
                 value={filters.dateTo}
                 onChange={(e) => setFilter("dateTo", e.target.value)}
-                style={{ ...inputStyle, width: "50%", fontFamily: "monospace" }}
+                style={{ ...inputStyle, width: "50%" }}
               />
             </div>
           </div>
