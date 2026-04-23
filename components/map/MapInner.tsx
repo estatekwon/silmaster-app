@@ -243,7 +243,7 @@ export default function MapInner() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const measureClickListenerRef = useRef<any>(null);
 
-  const { layers, filters, mapType, useDistrict, measureMode, selectMarker, setZoom, setMarkers, setLoading } = useMapStore();
+  const { layers, filters, mapType, useDistrict, measureMode, searchTarget, selectMarker, setZoom, setMarkers, setLoading } = useMapStore();
 
   // ── 측정 초기화 ──────────────────────────────────────
   const clearMeasure = useCallback(() => {
@@ -447,6 +447,14 @@ export default function MapInner() {
 
     return clearMeasure;
   }, [measureMode, clearMeasure, updateMeasureVisuals]);
+
+  // ── 주소 검색 이동 ────────────────────────────────────
+  useEffect(() => {
+    if (!mapRef.current || !searchTarget) return;
+    const pos = new window.kakao.maps.LatLng(searchTarget.lat, searchTarget.lng);
+    mapRef.current.setCenter(pos);
+    mapRef.current.setLevel(searchTarget.level ?? 6);
+  }, [searchTarget]);
 
   // ── 레이어 토글 ───────────────────────────────────────
   useEffect(() => {

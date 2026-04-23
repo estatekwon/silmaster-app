@@ -10,6 +10,7 @@ declare namespace kakao {
       setMapTypeId(mapTypeId: MapTypeId): void;
       getMapTypeId(): MapTypeId;
       getCenter(): LatLng;
+      setCenter(latlng: LatLng): void;
       getBounds(): LatLngBounds;
       addOverlayMapTypeId(mapTypeId: MapTypeId): void;
       removeOverlayMapTypeId(mapTypeId: MapTypeId): void;

@@ -7,6 +7,13 @@ interface Layers {
   land_tx: boolean;
 }
 
+export interface SearchTarget {
+  lat: number;
+  lng: number;
+  name: string;
+  level?: number;
+}
+
 interface MapStore {
   layers: Layers;
   filters: FilterState;
@@ -17,17 +24,21 @@ interface MapStore {
   mapType: MapType;
   useDistrict: boolean;
   measureMode: MeasureMode;
+  searchTarget: SearchTarget | null;
+  allMarkers: MarkerData[];   // 전체 마커 (패널 통계용)
 
   toggleLayer: (layer: LayerType) => void;
   setFilter: (key: keyof FilterState, value: string) => void;
   selectMarker: (marker: MarkerData | null) => void;
   setZoom: (zoom: number) => void;
   setMarkers: (markers: MarkerData[]) => void;
+  appendMarkers: (markers: MarkerData[]) => void;
   setLoading: (loading: boolean) => void;
   resetFilters: () => void;
   setMapType: (type: MapType) => void;
   toggleDistrict: () => void;
   setMeasureMode: (mode: MeasureMode) => void;
+  setSearchTarget: (target: SearchTarget | null) => void;
 }
 
 const defaultFilters: FilterState = {
@@ -57,6 +68,8 @@ export const useMapStore = create<MapStore>((set) => ({
   mapType: "ROADMAP",
   useDistrict: false,
   measureMode: "none",
+  searchTarget: null,
+  allMarkers: [],
 
   toggleLayer: (layer) =>
     set((s) => ({ layers: { ...s.layers, [layer]: !s.layers[layer] } })),
@@ -68,7 +81,15 @@ export const useMapStore = create<MapStore>((set) => ({
 
   setZoom: (zoomLevel) => set({ zoomLevel }),
 
-  setMarkers: (markers) => set({ markers }),
+  setMarkers: (markers) => set((s) => ({
+    markers,
+    allMarkers: [...s.allMarkers.filter((m) => m.layer !== markers[0]?.layer), ...markers],
+  })),
+
+  appendMarkers: (markers) => set((s) => ({
+    markers: [...s.markers, ...markers],
+    allMarkers: [...s.allMarkers, ...markers],
+  })),
 
   setLoading: (loading) => set({ loading }),
 
@@ -79,4 +100,6 @@ export const useMapStore = create<MapStore>((set) => ({
   toggleDistrict: () => set((s) => ({ useDistrict: !s.useDistrict })),
 
   setMeasureMode: (measureMode) => set({ measureMode }),
+
+  setSearchTarget: (searchTarget) => set({ searchTarget }),
 }));

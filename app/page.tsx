@@ -5,6 +5,7 @@ import MapContainer from "@/components/map/MapContainer";
 import MapTypeBar from "@/components/map/MapTypeBar";
 import MeasureToolbar from "@/components/map/MeasureToolbar";
 import LayerToggle from "@/components/map/LayerToggle";
+import MapSearch from "@/components/map/MapSearch";
 import FilterPanel from "@/components/sidebar/FilterPanel";
 import ChatFAB from "@/components/chat/ChatFAB";
 import ListingPanel, { LISTINGS } from "@/components/listings/ListingPanel";
@@ -138,6 +139,11 @@ export default function HomePage() {
               <MapContainer />
 
               {/* 지도 위 컨트롤 */}
+              {/* 상단 중앙: 주소 검색 */}
+              <div style={{ position: "absolute", top: 12, left: "50%", transform: "translateX(-50%)", zIndex: 10 }}>
+                <MapSearch />
+              </div>
+
               {/* 좌측 상단: 레이어 토글 */}
               <div style={{ position: "absolute", left: 12, top: 12, zIndex: 10 }}>
                 <LayerToggle />
