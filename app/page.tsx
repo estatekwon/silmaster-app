@@ -2,20 +2,38 @@
 
 import MapContainer from "@/components/map/MapContainer";
 import LayerToggle from "@/components/map/LayerToggle";
+import MapTypeBar from "@/components/map/MapTypeBar";
+import MeasureToolbar from "@/components/map/MeasureToolbar";
 import FilterPanel from "@/components/sidebar/FilterPanel";
 import ChatFAB from "@/components/chat/ChatFAB";
 import { useMapStore } from "@/stores/mapStore";
-import { Building2, TrendingUp, MapPin, Database } from "lucide-react";
+import { Building2, TrendingUp, Database } from "lucide-react";
 
 function StatBadge({ label, value, color }: { label: string; value: string; color: string }) {
   return (
     <div
-      className="flex items-center gap-2 px-3 py-1.5 rounded-lg"
-      style={{ background: "var(--surface-1)", border: "1px solid var(--surface-border)" }}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 6,
+        padding: "5px 10px",
+        borderRadius: 8,
+        background: "var(--surface-1)",
+        border: "1px solid var(--surface-border)",
+      }}
     >
-      <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color, boxShadow: `0 0 6px ${color}` }} />
-      <span className="text-xs font-mono" style={{ color: "var(--text-muted)" }}>{label}</span>
-      <span className="text-xs font-bold font-mono" style={{ color: "var(--text-primary)" }}>{value}</span>
+      <span
+        style={{
+          width: 7,
+          height: 7,
+          borderRadius: "50%",
+          background: color,
+          boxShadow: `0 0 6px ${color}`,
+          flexShrink: 0,
+        }}
+      />
+      <span style={{ fontSize: 11, fontFamily: "monospace", color: "var(--text-muted)" }}>{label}</span>
+      <span style={{ fontSize: 11, fontWeight: 700, fontFamily: "monospace", color: "var(--text-primary)" }}>{value}</span>
     </div>
   );
 }
@@ -24,51 +42,97 @@ export default function HomePage() {
   const { markers, loading } = useMapStore();
 
   return (
-    <div className="relative w-screen h-screen overflow-hidden" style={{ background: "var(--map-bg-base)" }}>
-      {/* Map fills everything */}
-      <div className="absolute inset-0">
+    <div style={{ position: "relative", width: "100vw", height: "100vh", overflow: "hidden", background: "var(--map-bg-base)" }}>
+      {/* 지도 */}
+      <div style={{ position: "absolute", inset: 0 }}>
         <MapContainer />
       </div>
 
-      {/* Top bar */}
+      {/* 상단 바 */}
       <div
-        className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 py-3 z-10"
         style={{
-          background: "linear-gradient(to bottom, rgba(13,15,20,0.95) 0%, rgba(13,15,20,0) 100%)",
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "12px 16px",
+          background: "linear-gradient(to bottom, rgba(13,15,20,0.96) 0%, rgba(13,15,20,0) 100%)",
+          zIndex: 10,
           pointerEvents: "none",
         }}
       >
-        {/* Logo */}
-        <div className="flex items-center gap-2.5" style={{ pointerEvents: "auto" }}>
+        {/* 로고 */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, pointerEvents: "auto" }}>
           <div
-            className="w-8 h-8 rounded-xl flex items-center justify-center"
-            style={{ background: "linear-gradient(135deg, #C9A96E, #E0C285)" }}
+            style={{
+              width: 34,
+              height: 34,
+              borderRadius: 10,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "linear-gradient(135deg, #C9A96E, #E0C285)",
+            }}
           >
-            <Building2 size={16} color="#0D0F14" strokeWidth={2.5} />
+            <Building2 size={17} color="#0D0F14" strokeWidth={2.5} />
           </div>
           <div>
-            <div className="text-sm font-black tracking-tight" style={{ color: "var(--text-primary)", letterSpacing: "-0.02em" }}>
+            <div style={{ fontSize: 14, fontWeight: 900, color: "var(--text-primary)", letterSpacing: "-0.02em" }}>
               실거래마스터
             </div>
-            <div className="text-xs" style={{ color: "var(--text-muted)" }}>경기도 산업용 부동산 인텔리전스</div>
+            <div style={{ fontSize: 10, color: "var(--text-muted)" }}>경기도 산업용 부동산 인텔리전스</div>
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="flex items-center gap-2" style={{ pointerEvents: "auto" }}>
+        {/* 통계 */}
+        <div style={{ display: "flex", alignItems: "center", gap: 6, pointerEvents: "auto" }}>
           <StatBadge label="등록공장" value="78,552" color="#A78BFA" />
           <StatBadge label="공장거래" value="79,387" color="#60A5FA" />
           <StatBadge label="토지거래" value="52,946" color="#F59E0B" />
           {loading && (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg" style={{ background: "var(--surface-1)", border: "1px solid var(--surface-border)" }}>
-              <div className="w-3 h-3 border border-accent-gold border-t-transparent rounded-full animate-spin" style={{ borderColor: "var(--accent-primary)", borderTopColor: "transparent" }} />
-              <span className="text-xs font-mono" style={{ color: "var(--text-muted)" }}>로딩 중...</span>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "5px 10px",
+                borderRadius: 8,
+                background: "var(--surface-1)",
+                border: "1px solid var(--surface-border)",
+              }}
+            >
+              <div
+                style={{
+                  width: 11,
+                  height: 11,
+                  borderRadius: "50%",
+                  border: "2px solid #C9A96E",
+                  borderTopColor: "transparent",
+                  animation: "spin 0.8s linear infinite",
+                }}
+              />
+              <span style={{ fontSize: 11, fontFamily: "monospace", color: "var(--text-muted)" }}>로딩 중...</span>
             </div>
           )}
           {!loading && markers.length > 0 && (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg" style={{ background: "var(--surface-1)", border: "1px solid var(--surface-border)" }}>
-              <Database size={11} style={{ color: "var(--status-up)" }} />
-              <span className="text-xs font-mono" style={{ color: "var(--status-up)" }}>{markers.length.toLocaleString()}건 표시</span>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 5,
+                padding: "5px 10px",
+                borderRadius: 8,
+                background: "var(--surface-1)",
+                border: "1px solid var(--surface-border)",
+              }}
+            >
+              <Database size={10} style={{ color: "var(--status-up)" }} />
+              <span style={{ fontSize: 11, fontFamily: "monospace", color: "var(--status-up)" }}>
+                {markers.length.toLocaleString()}건 표시
+              </span>
             </div>
           )}
         </div>
@@ -76,11 +140,20 @@ export default function HomePage() {
         {/* Pro CTA */}
         <div style={{ pointerEvents: "auto" }}>
           <button
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all hover:scale-105"
             style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "8px 16px",
+              borderRadius: 10,
+              fontSize: 12,
+              fontWeight: 700,
               background: "linear-gradient(135deg, #C9A96E, #E0C285)",
               color: "#0D0F14",
               boxShadow: "0 4px 16px rgba(201,169,110,0.3)",
+              cursor: "pointer",
+              border: "none",
+              transition: "transform 0.15s",
             }}
           >
             <TrendingUp size={13} />
@@ -89,60 +162,35 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Left controls: Layer toggle */}
-      <div className="absolute left-4 top-1/2 -translate-y-1/2 z-10">
+      {/* 좌측: 레이어 토글 */}
+      <div style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)", zIndex: 10 }}>
         <LayerToggle />
       </div>
 
-      {/* Bottom left: Filter */}
-      <div className="absolute bottom-6 left-4 z-10 flex items-center gap-2">
-        <FilterPanel />
-        <div
-          className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs"
-          style={{
-            background: "var(--surface-1)",
-            border: "1px solid var(--surface-border)",
-            color: "var(--text-muted)",
-          }}
-        >
-          <MapPin size={12} />
-          경기도 전체
-        </div>
+      {/* 우측: 측정 툴바 */}
+      <div style={{ position: "absolute", right: 16, top: "50%", transform: "translateY(-50%)", zIndex: 10 }}>
+        <MeasureToolbar />
       </div>
 
-      {/* Investment score teaser */}
+      {/* 하단 좌측: 필터 */}
+      <div style={{ position: "absolute", bottom: 24, left: 16, zIndex: 10 }}>
+        <FilterPanel />
+      </div>
+
+      {/* 하단 중앙: 지도 타입 바 */}
       <div
-        className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 fade-in"
         style={{
-          background: "var(--surface-1)",
-          border: "1px solid var(--surface-border)",
-          borderRadius: 12,
-          padding: "10px 16px",
-          boxShadow: "0 4px 24px rgba(0,0,0,0.5)",
-          display: "flex",
-          alignItems: "center",
-          gap: 12,
+          position: "absolute",
+          bottom: 24,
+          left: "50%",
+          transform: "translateX(-50%)",
+          zIndex: 10,
         }}
       >
-        <div>
-          <div className="text-xs font-semibold" style={{ color: "var(--text-secondary)" }}>투자 매력도 스코어</div>
-          <div className="text-xs" style={{ color: "var(--text-muted)" }}>지역 선택 후 확인 가능</div>
-        </div>
-        <div
-          className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-black font-mono"
-          style={{ background: "var(--accent-muted)", color: "var(--accent-primary)", border: "1px solid var(--accent-primary)40" }}
-        >
-          PRO
-        </div>
-        <button
-          className="text-xs font-semibold px-3 py-1.5 rounded-lg transition-all hover:scale-105"
-          style={{ background: "var(--accent-muted)", color: "var(--accent-primary)", border: "1px solid var(--accent-primary)60" }}
-        >
-          업그레이드
-        </button>
+        <MapTypeBar />
       </div>
 
-      {/* Chat FAB */}
+      {/* AI 챗봇 FAB */}
       <ChatFAB />
     </div>
   );

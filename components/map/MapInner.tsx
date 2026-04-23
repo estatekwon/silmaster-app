@@ -12,6 +12,54 @@ const LAYER_COLORS: Record<LayerType, string> = {
   land_tx: "#F59E0B",
 };
 
+// ── 측정 유틸 ────────────────────────────────────────────
+function haversine(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371000;
+  const φ1 = (lat1 * Math.PI) / 180;
+  const φ2 = (lat2 * Math.PI) / 180;
+  const Δφ = ((lat2 - lat1) * Math.PI) / 180;
+  const Δλ = ((lng2 - lng1) * Math.PI) / 180;
+  const a = Math.sin(Δφ / 2) ** 2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function totalDist(pts: kakao.maps.LatLng[]): number {
+  let d = 0;
+  for (let i = 1; i < pts.length; i++) {
+    d += haversine(pts[i - 1].getLat(), pts[i - 1].getLng(), pts[i].getLat(), pts[i].getLng());
+  }
+  return d;
+}
+
+function polygonAreaM2(pts: kakao.maps.LatLng[]): number {
+  if (pts.length < 3) return 0;
+  const R = 6371000;
+  let area = 0;
+  for (let i = 0; i < pts.length; i++) {
+    const j = (i + 1) % pts.length;
+    const φ1 = (pts[i].getLat() * Math.PI) / 180;
+    const φ2 = (pts[j].getLat() * Math.PI) / 180;
+    const Δλ = ((pts[j].getLng() - pts[i].getLng()) * Math.PI) / 180;
+    area += Δλ * (2 + Math.sin(φ1) + Math.sin(φ2));
+  }
+  return Math.abs((area * R * R) / 2);
+}
+
+function fmtDist(m: number) {
+  return m < 1000 ? `${Math.round(m)}m` : `${(m / 1000).toFixed(2)}km`;
+}
+
+function fmtArea(m2: number) {
+  const py = Math.round(m2 / 3.3058);
+  if (m2 < 10000) return `${Math.round(m2).toLocaleString()}㎡ · ${py.toLocaleString()}평`;
+  return `${(m2 / 10000).toFixed(2)}만㎡ · ${py.toLocaleString()}평`;
+}
+
+function measureLabel(text: string) {
+  return `<div style="background:rgba(13,15,20,0.92);border:1px solid #C9A96E;border-radius:7px;padding:5px 10px;font-size:12px;font-weight:700;color:#C9A96E;font-family:monospace;white-space:nowrap;pointer-events:none;">${text}</div>`;
+}
+
+// ── 팝업 HTML ────────────────────────────────────────────
 function buildPopupHtml(marker: MarkerData): string {
   if (marker.layer === "factory_register") {
     return `
@@ -117,61 +165,37 @@ function buildPopupHtml(marker: MarkerData): string {
 
 function createDotOverlayContent(color: string, selected = false): string {
   const size = selected ? 18 : 11;
-  const glow = selected ? `box-shadow:0 0 0 4px ${color}44,0 0 14px ${color}99;` : `box-shadow:0 1px 4px rgba(0,0,0,0.5);`;
-  return `<div style="
-    width:${size}px;height:${size}px;
-    border-radius:50%;
-    background:${color};
-    border:${selected ? "2px" : "1.5px"} solid rgba(255,255,255,0.85);
-    ${glow}
-    cursor:pointer;
-    transition:all 0.15s ease;
-  "></div>`;
+  const glow = selected
+    ? `box-shadow:0 0 0 4px ${color}44,0 0 14px ${color}99;`
+    : `box-shadow:0 1px 4px rgba(0,0,0,0.5);`;
+  return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};border:${selected ? "2px" : "1.5px"} solid rgba(255,255,255,0.85);${glow}cursor:pointer;transition:all 0.15s ease;"></div>`;
 }
 
-/** HEAD에 이미 주입된 카카오 SDK 스크립트가 있는지 확인 */
+// ── SDK 로더 ─────────────────────────────────────────────
 function isKakaoScriptInjected(): boolean {
   return !!document.querySelector('script[src*="dapi.kakao.com/v2/maps/sdk.js"]');
 }
 
-/** 카카오 SDK를 동적으로 로드하고 완전히 초기화된 뒤 callback 실행
- *
- * 핵심 원칙 (카카오 공식 가이드):
- *   1. autoload=false 로 스크립트 로드 → SDK 파싱만 완료, 지도 API 초기화 X
- *   2. window.kakao.maps.load(callback) 호출 → SDK 내부 비동기 초기화 완료 후 callback 실행
- *
- * script.onload 시점에는 window.kakao 객체 자체만 존재하고
- * kakao.maps.* API는 아직 준비되지 않을 수 있음 → 반드시 load() 콜백 안에서 초기화해야 함
- */
 function loadKakaoSDK(appKey: string, callback: () => void): () => void {
   let cancelled = false;
-
   const run = () => {
     if (cancelled) return;
-    window.kakao.maps.load(() => {
-      if (!cancelled) callback();
-    });
+    window.kakao.maps.load(() => { if (!cancelled) callback(); });
   };
 
   if (isKakaoScriptInjected()) {
-    // 스크립트는 이미 있음 → SDK 로드 여부 확인 후 바로 실행
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (typeof (window as any).kakao?.maps?.load === "function") {
       run();
     } else {
-      // 아직 스크립트 파싱 중인 극히 드문 케이스: onload 대기
       const existing = document.querySelector<HTMLScriptElement>(
         'script[src*="dapi.kakao.com/v2/maps/sdk.js"]'
       );
-      if (existing) {
-        const onload = () => { if (!cancelled) run(); };
-        existing.addEventListener("load", onload, { once: true });
-      }
+      existing?.addEventListener("load", () => { if (!cancelled) run(); }, { once: true });
     }
     return () => { cancelled = true; };
   }
 
-  // 최초 주입: autoload=false 필수 → SDK가 스스로 지도 API를 자동 초기화하지 않음
   const script = document.createElement("script");
   script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${appKey}&libraries=services,clusterer&autoload=false`;
   script.async = true;
@@ -180,10 +204,10 @@ function loadKakaoSDK(appKey: string, callback: () => void): () => void {
     console.error("[실거래마스터] 카카오맵 SDK 로드 실패 — appkey 또는 네트워크를 확인하세요");
   };
   document.head.appendChild(script);
-
   return () => { cancelled = true; };
 }
 
+// ── 컴포넌트 ─────────────────────────────────────────────
 export default function MapInner() {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<kakao.maps.Map | null>(null);
@@ -191,8 +215,84 @@ export default function MapInner() {
   const infoWindowRef = useRef<kakao.maps.InfoWindow | null>(null);
   const loadedLayersRef = useRef<Set<LayerType>>(new Set());
 
-  const { layers, filters, selectMarker, setZoom, setMarkers, setLoading } = useMapStore();
+  // 측정 관련 refs
+  const measurePointsRef = useRef<kakao.maps.LatLng[]>([]);
+  const measurePolyRef = useRef<kakao.maps.Polyline | null>(null);
+  const measurePolyFillRef = useRef<kakao.maps.Polygon | null>(null);
+  const measureDotOverlaysRef = useRef<kakao.maps.CustomOverlay[]>([]);
+  const measureLabelRef = useRef<kakao.maps.CustomOverlay | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const measureClickListenerRef = useRef<any>(null);
 
+  const { layers, filters, mapType, useDistrict, measureMode, selectMarker, setZoom, setMarkers, setLoading } = useMapStore();
+
+  // ── 측정 초기화 ──────────────────────────────────────
+  const clearMeasure = useCallback(() => {
+    measurePolyRef.current?.setMap(null);
+    measurePolyRef.current = null;
+    measurePolyFillRef.current?.setMap(null);
+    measurePolyFillRef.current = null;
+    measureDotOverlaysRef.current.forEach((o) => o.setMap(null));
+    measureDotOverlaysRef.current = [];
+    measureLabelRef.current?.setMap(null);
+    measureLabelRef.current = null;
+    measurePointsRef.current = [];
+    if (measureClickListenerRef.current && mapRef.current) {
+      window.kakao.maps.event.removeListener(mapRef.current, "click", measureClickListenerRef.current);
+      measureClickListenerRef.current = null;
+    }
+    mapRef.current?.setCursor?.("");
+  }, []);
+
+  const updateMeasureVisuals = useCallback((pts: kakao.maps.LatLng[], mode: "distance" | "area") => {
+    if (!mapRef.current) return;
+
+    // polyline
+    if (!measurePolyRef.current) {
+      measurePolyRef.current = new window.kakao.maps.Polyline({
+        strokeWeight: 3,
+        strokeColor: "#C9A96E",
+        strokeOpacity: 0.9,
+        strokeStyle: "solid",
+        map: mapRef.current,
+      });
+    }
+    measurePolyRef.current.setPath(pts);
+
+    // polygon fill (area mode)
+    if (mode === "area" && pts.length >= 3) {
+      if (!measurePolyFillRef.current) {
+        measurePolyFillRef.current = new window.kakao.maps.Polygon({
+          strokeWeight: 0,
+          fillColor: "#A78BFA",
+          fillOpacity: 0.15,
+          map: mapRef.current,
+        });
+      }
+      measurePolyFillRef.current.setPath(pts);
+    }
+
+    // label at last point
+    const last = pts[pts.length - 1];
+    const text =
+      mode === "distance"
+        ? fmtDist(totalDist(pts))
+        : pts.length >= 3
+        ? fmtArea(polygonAreaM2(pts))
+        : "점 3개 이상 찍어주세요";
+
+    if (measureLabelRef.current) {
+      measureLabelRef.current.setMap(null);
+    }
+    measureLabelRef.current = new window.kakao.maps.CustomOverlay({
+      position: last,
+      content: measureLabel(text),
+      map: mapRef.current,
+      yAnchor: 2.2,
+    });
+  }, []);
+
+  // ── 레이어 로드 ──────────────────────────────────────
   const loadLayer = useCallback(
     async (layer: LayerType) => {
       if (loadedLayersRef.current.has(layer) || !mapRef.current) return;
@@ -210,8 +310,6 @@ export default function MapInner() {
 
         markers.forEach((m: MarkerData) => {
           const position = new window.kakao.maps.LatLng(m.lat, m.lng);
-
-          // dot overlay (marker)
           const dotEl = document.createElement("div");
           dotEl.innerHTML = createDotOverlayContent(color);
 
@@ -222,14 +320,12 @@ export default function MapInner() {
             yAnchor: 0.5,
           });
 
-          // popup infowindow
           dotEl.addEventListener("click", () => {
             infoWindowRef.current?.close();
             const iw = new window.kakao.maps.InfoWindow({
               content: `<div style="background:#111318;border:1px solid #2A2D35;border-radius:12px;overflow:hidden">${buildPopupHtml(m)}</div>`,
               removable: true,
             });
-            // CustomOverlay 위에 InfoWindow를 붙이기 위해 임시 마커 사용
             const tmpMarker = new window.kakao.maps.Marker({ position, map: mapRef.current! });
             iw.open(mapRef.current!, tmpMarker);
             tmpMarker.setMap(null);
@@ -249,30 +345,21 @@ export default function MapInner() {
     [filters.sigungu, selectMarker, setMarkers, setLoading]
   );
 
-  // Init Kakao Map
+  // ── 초기화 ───────────────────────────────────────────
   useEffect(() => {
-    if (!KAKAO_KEY) return;
-    // containerRef가 마운트될 때까지 대기
-    if (!containerRef.current) return;
-    // 이미 지도가 초기화된 경우 중복 실행 방지
-    if (mapRef.current) return;
+    if (!KAKAO_KEY || !containerRef.current || mapRef.current) return;
 
     const cancel = loadKakaoSDK(KAKAO_KEY, () => {
-      // kakao.maps.load() 콜백 — 이 시점에서만 kakao.maps.* API 사용 가능
       if (!containerRef.current || mapRef.current) return;
 
       const center = new window.kakao.maps.LatLng(37.4138, 127.5183);
-      const map = new window.kakao.maps.Map(containerRef.current, {
-        center,
-        level: 9,
-      });
+      const map = new window.kakao.maps.Map(containerRef.current, { center, level: 9 });
 
       window.kakao.maps.event.addListener(map, "zoom_changed", () => {
         setZoom(map.getLevel());
       });
 
       mapRef.current = map;
-
       (Object.keys(layers) as LayerType[]).forEach((l) => {
         if (layers[l]) loadLayer(l);
       });
@@ -280,13 +367,66 @@ export default function MapInner() {
 
     return () => {
       cancel();
-      // mapRef만 초기화 — SDK 스크립트는 HEAD에 유지 (재사용)
+      clearMeasure();
       mapRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Toggle layer visibility
+  // ── 지도 타입 ─────────────────────────────────────────
+  useEffect(() => {
+    if (!mapRef.current) return;
+    const typeMap: Record<string, number> = {
+      ROADMAP: 1, SKYVIEW: 2, HYBRID: 3, TERRAIN: 5,
+    };
+    const id = typeMap[mapType] ?? 1;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (mapRef.current as any).setMapTypeId(id);
+  }, [mapType]);
+
+  // ── 지적도 오버레이 ───────────────────────────────────
+  useEffect(() => {
+    if (!mapRef.current) return;
+    // USE_DISTRICT = 11
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const typeId = 11 as any;
+    if (useDistrict) {
+      mapRef.current.addOverlayMapTypeId(typeId);
+    } else {
+      mapRef.current.removeOverlayMapTypeId(typeId);
+    }
+  }, [useDistrict]);
+
+  // ── 측정 모드 ─────────────────────────────────────────
+  useEffect(() => {
+    if (!mapRef.current) return;
+    clearMeasure();
+    if (measureMode === "none") return;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const handler = (e: any) => {
+      const latlng: kakao.maps.LatLng = e.latLng;
+      measurePointsRef.current = [...measurePointsRef.current, latlng];
+
+      // dot at point
+      const dot = new window.kakao.maps.CustomOverlay({
+        position: latlng,
+        content: `<div style="width:8px;height:8px;border-radius:50%;background:#C9A96E;border:1.5px solid #fff;box-shadow:0 0 6px #C9A96E88;"></div>`,
+        map: mapRef.current!,
+        yAnchor: 0.5,
+      });
+      measureDotOverlaysRef.current.push(dot);
+
+      updateMeasureVisuals(measurePointsRef.current, measureMode);
+    };
+
+    window.kakao.maps.event.addListener(mapRef.current, "click", handler);
+    measureClickListenerRef.current = handler;
+
+    return clearMeasure;
+  }, [measureMode, clearMeasure, updateMeasureVisuals]);
+
+  // ── 레이어 토글 ───────────────────────────────────────
   useEffect(() => {
     if (!mapRef.current) return;
     (Object.keys(layers) as LayerType[]).forEach((layer) => {

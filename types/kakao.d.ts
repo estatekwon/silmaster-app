@@ -7,10 +7,26 @@ declare namespace kakao {
       constructor(container: HTMLElement, options: MapOptions);
       getLevel(): number;
       setLevel(level: number): void;
+      setMapTypeId(mapTypeId: MapTypeId): void;
+      getMapTypeId(): MapTypeId;
       getCenter(): LatLng;
       getBounds(): LatLngBounds;
       addOverlayMapTypeId(mapTypeId: MapTypeId): void;
       removeOverlayMapTypeId(mapTypeId: MapTypeId): void;
+      setCursor(cursor: string): void;
+    }
+
+    class Polyline {
+      constructor(options: PolylineOptions);
+      setMap(map: Map | null): void;
+      setPath(path: LatLng[]): void;
+      getPath(): LatLng[];
+    }
+
+    class Polygon {
+      constructor(options: PolygonOptions);
+      setMap(map: Map | null): void;
+      setPath(path: LatLng[]): void;
     }
 
     class LatLng {
@@ -81,6 +97,25 @@ declare namespace kakao {
       removable?: boolean;
     }
 
+    interface PolylineOptions {
+      path?: LatLng[];
+      strokeWeight?: number;
+      strokeColor?: string;
+      strokeOpacity?: number;
+      strokeStyle?: string;
+      map?: Map;
+    }
+
+    interface PolygonOptions {
+      path?: LatLng[];
+      strokeWeight?: number;
+      strokeColor?: string;
+      strokeOpacity?: number;
+      fillColor?: string;
+      fillOpacity?: number;
+      map?: Map;
+    }
+
     interface MarkerImage {
       // placeholder
     }
@@ -92,6 +127,7 @@ declare namespace kakao {
       TRAFFIC = 4,
       TERRAIN = 5,
       BICYCLE = 6,
+      USE_DISTRICT = 11,
     }
   }
 }

@@ -53,12 +53,18 @@ export interface MapBounds {
   neLng: number;
 }
 
+export type MapType = "ROADMAP" | "SKYVIEW" | "TERRAIN" | "HYBRID";
+export type MeasureMode = "none" | "distance" | "area";
+
 export interface FilterState {
   sigungu: string;
+  industryType: string;
   areaMin: string;
   areaMax: string;
   priceMin: string;
   priceMax: string;
+  yearFrom: string;
+  yearTo: string;
   dateFrom: string;
   dateTo: string;
 }

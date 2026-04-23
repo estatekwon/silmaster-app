@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { MarkerData, FilterState, LayerType } from "@/types";
+import type { MarkerData, FilterState, LayerType, MapType, MeasureMode } from "@/types";
 
 interface Layers {
   factory_register: boolean;
@@ -14,6 +14,9 @@ interface MapStore {
   zoomLevel: number;
   markers: MarkerData[];
   loading: boolean;
+  mapType: MapType;
+  useDistrict: boolean;
+  measureMode: MeasureMode;
 
   toggleLayer: (layer: LayerType) => void;
   setFilter: (key: keyof FilterState, value: string) => void;
@@ -22,14 +25,20 @@ interface MapStore {
   setMarkers: (markers: MarkerData[]) => void;
   setLoading: (loading: boolean) => void;
   resetFilters: () => void;
+  setMapType: (type: MapType) => void;
+  toggleDistrict: () => void;
+  setMeasureMode: (mode: MeasureMode) => void;
 }
 
 const defaultFilters: FilterState = {
   sigungu: "",
+  industryType: "",
   areaMin: "",
   areaMax: "",
   priceMin: "",
   priceMax: "",
+  yearFrom: "",
+  yearTo: "",
   dateFrom: "",
   dateTo: "",
 };
@@ -45,11 +54,12 @@ export const useMapStore = create<MapStore>((set) => ({
   zoomLevel: 9,
   markers: [],
   loading: false,
+  mapType: "ROADMAP",
+  useDistrict: false,
+  measureMode: "none",
 
   toggleLayer: (layer) =>
-    set((s) => ({
-      layers: { ...s.layers, [layer]: !s.layers[layer] },
-    })),
+    set((s) => ({ layers: { ...s.layers, [layer]: !s.layers[layer] } })),
 
   setFilter: (key, value) =>
     set((s) => ({ filters: { ...s.filters, [key]: value } })),
@@ -63,4 +73,10 @@ export const useMapStore = create<MapStore>((set) => ({
   setLoading: (loading) => set({ loading }),
 
   resetFilters: () => set({ filters: defaultFilters }),
+
+  setMapType: (mapType) => set({ mapType }),
+
+  toggleDistrict: () => set((s) => ({ useDistrict: !s.useDistrict })),
+
+  setMeasureMode: (measureMode) => set({ measureMode }),
 }));
