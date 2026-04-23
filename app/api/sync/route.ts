@@ -101,8 +101,10 @@ function toFactoryTransaction(r: Record<string, string>) {
 function toLandTransaction(r: Record<string, string>) {
   const recept_yy = r.RECEPT_YY ?? "";
   const recept_no = r.RECEPT_NO ?? "";
-  const thing_seq = r.THING_SEQ_NO ?? "";
-  const id = `lt_${recept_yy}_${recept_no}_${thing_seq}`;
+  const statmnt_no = r.STATMNT_NO ?? "";
+  const contract_day = r.CONTRACT_DAY ?? "";
+  // 토지 API에는 THING_SEQ_NO 필드 없음 → STATMNT_NO + CONTRACT_DAY로 유니크 ID 구성
+  const id = `lt_${recept_yy}_${recept_no}_${statmnt_no}_${contract_day}`;
 
   return {
     id,
@@ -120,9 +122,13 @@ function toLandTransaction(r: Record<string, string>) {
 
 // ─── Supabase upsert (배치) ──────────────────────────────────────────────────
 
-async function upsertBatch<T extends object>(table: string, rows: T[]): Promise<number> {
+async function upsertBatch<T extends object & { id: string }>(table: string, rows: T[]): Promise<number> {
   const BATCH = 500;
   let upserted = 0;
+
+  // 소스 데이터 내 중복 ID 제거
+  const seen = new Set<string>();
+  rows = rows.filter((r) => { if (seen.has(r.id)) return false; seen.add(r.id); return true; });
 
   for (let i = 0; i < rows.length; i += BATCH) {
     const chunk = rows.slice(i, i + BATCH);
