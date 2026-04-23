@@ -44,16 +44,24 @@ export default function ChatFAB() {
         }),
       });
 
-      const reader = res.body!.getReader();
+      if (!res.ok || !res.body) {
+        appendToLastAssistant("죄송합니다, 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.");
+        return;
+      }
+
+      const reader = res.body.getReader();
       const decoder = new TextDecoder();
+      let buffer = "";
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        const chunk = decoder.decode(value);
-        const lines = chunk.split("\n").filter((l) => l.startsWith("data: "));
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
         for (const line of lines) {
-          const data = line.slice(6);
+          if (!line.startsWith("data: ")) continue;
+          const data = line.slice(6).trim();
           if (data === "[DONE]") break;
           try {
             const { content } = JSON.parse(data);
@@ -61,6 +69,8 @@ export default function ChatFAB() {
           } catch {}
         }
       }
+    } catch {
+      appendToLastAssistant("네트워크 오류가 발생했습니다. 연결 상태를 확인해 주세요.");
     } finally {
       setStreaming(false);
     }

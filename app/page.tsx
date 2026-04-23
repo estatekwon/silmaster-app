@@ -138,8 +138,8 @@ export default function HomePage() {
               <MapContainer />
 
               {/* 지도 위 컨트롤 */}
-              {/* 우측 상단: 레이어 토글 */}
-              <div style={{ position: "absolute", right: 12, top: 12, zIndex: 10 }}>
+              {/* 좌측 상단: 레이어 토글 */}
+              <div style={{ position: "absolute", left: 12, top: 12, zIndex: 10 }}>
                 <LayerToggle />
               </div>
 

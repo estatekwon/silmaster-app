@@ -127,9 +127,19 @@ export default function MarkerDataPanel() {
 
       <div className="left-panel-body">
         {loading && (
-          <div style={{ padding: 40, textAlign: "center", color: "var(--text-muted)", fontSize: 12 }}>
-            <div style={{ width: 20, height: 20, borderRadius: "50%", border: "2px solid #C9A96E", borderTopColor: "transparent", animation: "spin 0.8s linear infinite", margin: "0 auto 12px" }} />
-            데이터 로딩 중...
+          <div style={{ padding: "12px 16px" }}>
+            {[1,2,3,4,5].map((i) => (
+              <div key={i} style={{ marginBottom: 8, borderRadius: 10, border: "1px solid var(--surface-border)", padding: 14, background: "var(--surface-1)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                  <div style={{ width: 60, height: 14, borderRadius: 4, background: "var(--surface-3)", animation: "pulse-gold 1.5s ease-in-out infinite" }} />
+                  <div style={{ width: 80, height: 12, borderRadius: 4, background: "var(--surface-3)", animation: "pulse-gold 1.5s ease-in-out infinite" }} />
+                </div>
+                <div style={{ width: "75%", height: 16, borderRadius: 4, background: "var(--surface-3)", marginBottom: 6, animation: "pulse-gold 1.5s ease-in-out infinite" }} />
+                <div style={{ width: "55%", height: 12, borderRadius: 4, background: "var(--surface-3)", marginBottom: 10, animation: "pulse-gold 1.5s ease-in-out infinite" }} />
+                <div style={{ width: 90, height: 18, borderRadius: 4, background: "var(--surface-3)", animation: "pulse-gold 1.5s ease-in-out infinite" }} />
+              </div>
+            ))}
+            <div style={{ textAlign: "center", fontSize: 11, color: "var(--text-muted)", marginTop: 8 }}>경기도 API 연결 중...</div>
           </div>
         )}
         {!loading && visible.length === 0 && (

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
+export const runtime = "edge";
+
 const GEMINI_KEY = process.env.GEMINI_API_KEY;
 
 const SYSTEM_PROMPT = `당신은 경기도 산업용 부동산 전문 AI 어시스턴트 "실거래마스터 AI"입니다.
